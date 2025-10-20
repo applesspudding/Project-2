@@ -18,8 +18,9 @@ public class ShadowDungeon extends AbstractGame {
     private static BattleRoom battleRoomB;
     private static EndRoom endRoom;
     private static Player player;
+    private static Store store;
     private final Image background;
-    
+
     public static final String PREP_ROOM_NAME = "prep";
     public static final String BATTLE_ROOM_A_NAME = "A";
     public static final String BATTLE_ROOM_B_NAME = "B";
@@ -35,6 +36,7 @@ public class ShadowDungeon extends AbstractGame {
         screenWidth = Integer.parseInt(gameProps.getProperty("window.width"));
         screenHeight = Integer.parseInt(gameProps.getProperty("window.height"));
         this.background = new Image("res/background.png");
+        store = new Store();
 
         resetGameState(gameProps);
     }
@@ -54,6 +56,11 @@ public class ShadowDungeon extends AbstractGame {
 
         ShadowDungeon.player = new Player(IOUtils.parseCoords(gameProps.getProperty("player.start")));
         prepRoom.setPlayer(player);
+
+        // Hide store on reset
+        if (store != null) {
+            store.hide();
+        }
     }
 
     /**
@@ -66,8 +73,37 @@ public class ShadowDungeon extends AbstractGame {
             Window.close();
         }
 
+        // Toggle store with Space key
+        if (input.wasPressed(Keys.SPACE)) {
+            store.toggleVisibility();
+        }
+
         background.draw((double) Window.getWidth() / 2, (double) Window.getHeight() / 2);
 
+        // If store is visible, update store and pause game
+        if (store.isVisible()) {
+            // Still render the current room in background
+            switch (currRoomName) {
+                case PREP_ROOM_NAME:
+                    prepRoom.update(input);
+                    break;
+                case BATTLE_ROOM_A_NAME:
+                    battleRoomA.update(input);
+                    break;
+                case BATTLE_ROOM_B_NAME:
+                    battleRoomB.update(input);
+                    break;
+                default:
+                    endRoom.update(input);
+            }
+
+            // Draw store on top
+            store.update(input, player);
+            store.draw();
+            return;
+        }
+
+        // Normal game update
         switch (currRoomName) {
             case PREP_ROOM_NAME:
                 prepRoom.update(input);
@@ -89,13 +125,11 @@ public class ShadowDungeon extends AbstractGame {
             case PREP_ROOM_NAME:
                 nextDoor = prepRoom.findDoorByDestination();
 
-                // assume that prep room can only be entered through Battle Room A
                 if (currRoomName.equals(BATTLE_ROOM_A_NAME)) {
                     battleRoomA.stopCurrentUpdateCall();
                 }
                 currRoomName = PREP_ROOM_NAME;
 
-                // move the player to the center of the next room's door
                 nextDoor.unlock(true);
                 player.move(nextDoor.getPosition().x, nextDoor.getPosition().y);
                 prepRoom.setPlayer(player);
@@ -104,7 +138,6 @@ public class ShadowDungeon extends AbstractGame {
             case BATTLE_ROOM_A_NAME:
                 nextDoor = battleRoomA.findDoorByDestination(currRoomName);
 
-                // assume that Battle Room A can only be entered through Prep Room or Battle Room B
                 if (currRoomName.equals(BATTLE_ROOM_B_NAME)) {
                     battleRoomB.stopCurrentUpdateCall();
                 } else if (currRoomName.equals(PREP_ROOM_NAME)) {
@@ -112,12 +145,10 @@ public class ShadowDungeon extends AbstractGame {
                 }
                 currRoomName = BATTLE_ROOM_A_NAME;
 
-                // prepare the door to be able to activate the Battle Room
                 if (!battleRoomA.isComplete()) {
                     nextDoor.setShouldLockAgain();
                 }
 
-                // move the player to the center of the next room's door
                 nextDoor.unlock(true);
                 player.move(nextDoor.getPosition().x, nextDoor.getPosition().y);
                 battleRoomA.setPlayer(player);
@@ -126,7 +157,6 @@ public class ShadowDungeon extends AbstractGame {
             case BATTLE_ROOM_B_NAME:
                 nextDoor = battleRoomB.findDoorByDestination(currRoomName);
 
-                // assume that Battle Room B can only be entered through Battle Room A or End Room
                 if (currRoomName.equals(BATTLE_ROOM_A_NAME)) {
                     battleRoomA.stopCurrentUpdateCall();
                 } else if (currRoomName.equals(END_ROOM_NAME)) {
@@ -134,12 +164,10 @@ public class ShadowDungeon extends AbstractGame {
                 }
                 currRoomName = BATTLE_ROOM_B_NAME;
 
-                // prepare the door to be able to activate the Battle Room
                 if (!battleRoomB.isComplete()) {
                     nextDoor.setShouldLockAgain();
                 }
 
-                // move the player to the center of the next room's door
                 nextDoor.unlock(true);
                 player.move(nextDoor.getPosition().x, nextDoor.getPosition().y);
                 battleRoomB.setPlayer(player);
@@ -148,13 +176,11 @@ public class ShadowDungeon extends AbstractGame {
             default:
                 nextDoor = endRoom.findDoorByDestination();
 
-                // assume that end room can only be entered through Battle Room B
                 if (currRoomName.equals(BATTLE_ROOM_B_NAME)) {
                     battleRoomB.stopCurrentUpdateCall();
                 }
                 currRoomName = END_ROOM_NAME;
 
-                // move the player to the center of the next room's door
                 nextDoor.unlock(true);
                 player.move(nextDoor.getPosition().x, nextDoor.getPosition().y);
                 endRoom.setPlayer(player);
@@ -165,10 +191,13 @@ public class ShadowDungeon extends AbstractGame {
         switch (currRoomName) {
             case PREP_ROOM_NAME:
                 prepRoom.stopCurrentUpdateCall();
+                break;
             case BATTLE_ROOM_A_NAME:
                 battleRoomA.stopCurrentUpdateCall();
+                break;
             case BATTLE_ROOM_B_NAME:
                 battleRoomB.stopCurrentUpdateCall();
+                break;
             default:
         }
 
@@ -180,10 +209,10 @@ public class ShadowDungeon extends AbstractGame {
         endRoom.setPlayer(player);
     }
 
-
     public static Properties getGameProps() {
         return gameProps;
     }
+
     public static Properties getMessageProps() {
         return messageProps;
     }

@@ -1,20 +1,26 @@
+import bagel.Image;
 import bagel.Input;
 import bagel.Keys;
+import bagel.util.Point;
 
 import java.util.Map;
 import java.util.Properties;
 
 /**
- * Room where the game starts
+ * Room where the game starts and character selection happens
  */
 public class PrepRoom {
     private Player player;
     private Door door;
     private RestartArea restartArea;
-    private boolean stopCurrentUpdateCall = false; // this determines whether to prematurely stop the update execution
+    private boolean stopCurrentUpdateCall = false;
+    private Image robotSprite;
+    private Image marineSprite;
+    private Point robotPosition;
+    private Point marinePosition;
 
     public void initEntities(Properties gameProperties) {
-        // find the configuration of game objects for this room
+        // Find configuration for this room
         for (Map.Entry<Object, Object> entry: gameProperties.entrySet()) {
             String roomSuffix = String.format(".%s", ShadowDungeon.PREP_ROOM_NAME);
             if (entry.getKey().toString().contains(roomSuffix)) {
@@ -33,12 +39,22 @@ public class PrepRoom {
                 }
             }
         }
+
+        // Load character sprites for display
+        robotSprite = new Image("res/robot_sprite.png");
+        marineSprite = new Image("res/marine_sprite.png");
+        robotPosition = IOUtils.parseCoords(gameProperties.getProperty("Robot"));
+        marinePosition = IOUtils.parseCoords(gameProperties.getProperty("Marine"));
     }
 
     public void update(Input input) {
         UserInterface.drawStartMessages();
 
-        // update and draw all game objects in this room
+        // Draw character sprites
+        robotSprite.draw(robotPosition.x, robotPosition.y);
+        marineSprite.draw(marinePosition.x, marinePosition.y);
+
+        // Update and draw all game objects in this room
         door.update(player);
         door.draw();
         if (stopUpdatingEarlyIfNeeded()) {
@@ -53,9 +69,23 @@ public class PrepRoom {
             player.draw();
         }
 
-        // door unlock mechanism
-        if (input.wasPressed(Keys.R) && !findDoor().isUnlocked()) {
-            findDoor().unlock(false);
+        // Character selection and door unlock mechanism
+        if (input.wasPressed(Keys.R)) {
+            if (player != null) {
+                player.selectCharacter(CharacterType.ROBOT);
+                if (!findDoor().isUnlocked()) {
+                    findDoor().unlock(false);
+                }
+            }
+        }
+
+        if (input.wasPressed(Keys.M)) {
+            if (player != null) {
+                player.selectCharacter(CharacterType.MARINE);
+                if (!findDoor().isUnlocked()) {
+                    findDoor().unlock(false);
+                }
+            }
         }
     }
 

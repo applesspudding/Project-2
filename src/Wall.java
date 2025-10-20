@@ -1,5 +1,6 @@
 import bagel.Image;
 import bagel.util.Point;
+import bagel.util.Rectangle;
 
 /**
  * Obstacle that blocks the player from moving through it
@@ -15,7 +16,6 @@ public class Wall {
 
     public void update(Player player) {
         if (hasCollidedWith(player)) {
-            // set the player to its position prior to attempting to move through this wall
             player.move(player.getPrevPosition().x, player.getPrevPosition().y);
         }
     }
@@ -25,6 +25,11 @@ public class Wall {
     }
 
     public boolean hasCollidedWith(Player player) {
-        return image.getBoundingBoxAt(position).intersects(player.getCurrImage().getBoundingBoxAt(player.getPosition()));
+        return image.getBoundingBoxAt(position).intersects(
+                player.getCurrImage().getBoundingBoxAt(player.getPosition()));
+    }
+
+    public Rectangle getBoundingBox() {
+        return image.getBoundingBoxAt(position);
     }
 }

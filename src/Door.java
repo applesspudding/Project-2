@@ -1,5 +1,6 @@
 import bagel.Image;
 import bagel.util.Point;
+import bagel.util.Rectangle;
 
 /**
  * Door which can be locked or unlocked, allows the player to move to the room it's connected to
@@ -8,9 +9,9 @@ public class Door {
     private final Point position;
     private Image image;
     public final String toRoomName;
-    public BattleRoom battleRoom; // only set if this door is inside a Battle Room
+    public BattleRoom battleRoom;
     private boolean unlocked = false;
-    private boolean justEntered = false; // when the player only just entered this door's room
+    private boolean justEntered = false;
     private boolean shouldLockAgain = false;
 
     private static final Image LOCKED = new Image("res/locked_door.png");
@@ -48,11 +49,11 @@ public class Door {
     }
 
     public boolean hasCollidedWith(Player player) {
-        return image.getBoundingBoxAt(position).intersects(player.getCurrImage().getBoundingBoxAt(player.getPosition()));
+        return image.getBoundingBoxAt(position).intersects(
+                player.getCurrImage().getBoundingBoxAt(player.getPosition()));
     }
 
     private void onCollideWith(Player player) {
-        // when the player only just entered this door's room, overlapping with the unlocked door shouldn't trigger room transition
         if (unlocked && !justEntered) {
             ShadowDungeon.changeRoom(toRoomName);
         }
@@ -62,11 +63,9 @@ public class Door {
     }
 
     private void onNoLongerCollide() {
-        // when the player only just moved away from the unlocked door after walking through it
         if (unlocked && justEntered) {
             justEntered = false;
 
-            // Battle Room activation conditions
             if (shouldLockAgain && battleRoom != null && !battleRoom.isComplete()) {
                 unlocked = false;
                 image = LOCKED;
@@ -90,5 +89,9 @@ public class Door {
 
     public Point getPosition() {
         return position;
+    }
+
+    public Rectangle getBoundingBox() {
+        return image.getBoundingBoxAt(position);
     }
 }

@@ -4,7 +4,7 @@ import bagel.Keys;
 import bagel.util.Point;
 
 /**
- * Chest that can be unlocked by the player to earn coins
+ * Chest that requires a key to unlock and earn coins
  */
 public class TreasureBox {
     private final Point position;
@@ -19,18 +19,26 @@ public class TreasureBox {
     }
 
     public void update(Input input, Player player) {
+        if (!active) return;
+
         if (hasCollidedWith(player) && input.wasPressed(Keys.K)) {
-            player.earnCoins(coinValue);
-            active = false;
+            // Check if player has a key
+            if (player.useKey()) {
+                player.earnCoins(coinValue);
+                active = false;
+            }
         }
     }
 
     public void draw() {
-        image.draw(position.x, position.y);
+        if (active) {
+            image.draw(position.x, position.y);
+        }
     }
 
     public boolean hasCollidedWith(Player player) {
-        return image.getBoundingBoxAt(position).intersects(player.getCurrImage().getBoundingBoxAt(player.getPosition()));
+        return image.getBoundingBoxAt(position).intersects(
+                player.getCurrImage().getBoundingBoxAt(player.getPosition()));
     }
 
     public boolean isActive() {
